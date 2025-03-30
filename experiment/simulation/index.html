@@ -1,13 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<!-- Add CSS at the head of HTML file -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chord System Virtual Lab</title>
     <link rel="stylesheet" href="./css/main.css">
 </head>
 <body>
-		<!-- Your code goes here-->
-
-	<!-- Add JS at the bottom of HTML file --> 
-        <script src="./js/main.js"></script>
+    <div class="container">
+        <canvas id="chord-ring" width="600" height="600"></canvas>
+				<div>
+        <div id="controls">
+            <h2>Controls</h2>
+						<div><input type="number" id="node-id-input" min="0" max="63" placeholder="Node ID (0-63)"></div>
+            <button id="add-node">Add Node</button>
+            <button id="remove-node">Remove Node</button><hr>
+						<input type="number" id="key-input" placeholder="Key (0-63) for insert/lookup/remove"><br>
+						<button id="insert-key">Insert Key</button>
+						<button id="lookup-key">Lookup Key</button>
+						<button id="remove-key">Remove Key</button><hr>
+						<button id="challenge">Start Challenge</button>
+            <div id="feedback"></div>
+        </div>
+        <div id="node-details">
+            <h3>Node Details</h3>
+            <p>Select a node by clicking it to view its finger table and keys.</p>
+        </div>
+				</div>
+    </div>
+    <script src="./js/main.js"></script>
 </body>
 </html>

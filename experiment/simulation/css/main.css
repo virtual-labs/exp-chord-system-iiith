@@ -1,1 +1,55 @@
-/* You CSS goes in here */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 100vh;
+  background-color: #f0f0f0;
+}
+
+#chord-ring {
+  border: 1px solid #000;
+  background-color: #fff;
+}
+
+#node-details, #controls {
+  width: 25rem;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+#node-details h2, #controls h2 {
+  margin-top: 0;
+}
+
+button, input {
+  margin: 5px;
+  padding: 5px 10px;
+}
+input {
+  width: 80%;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+#feedback {
+  margin-top: 10px;
+  font-weight: bold;
+  color: #333;
+}
