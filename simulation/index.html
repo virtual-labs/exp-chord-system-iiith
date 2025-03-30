@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chord System Virtual Lab</title>
+  <link rel="stylesheet" href="./css/main.css">
+</head>
+<body>
+<!-- Instructions -->
+<div class="container">
+<div class="columns is-centered">
+  <div class="column">
+  <div class="v-collapsible-instruction-container v-instruction-container">
+    <div class="v-collapsible is-size-5">Instructions</div>
+    <div class="v-content" style="text-align: left; padding-left: 10%; padding-right: 10%;">
+      <ul style="list-style: disc;">
+        <li><strong>Add Nodes:</strong> Enter ID (0-63) → Add Node.</li>
+        <li><strong>Insert Keys:</strong> Enter key (0-63) → Insert Key.</li>
+        <li><strong>Inspect Nodes:</strong> Click/tap nodes to view details (successor, fingers, keys).</li>
+        <li><strong>Simulate Lookups:</strong> Enter key → Lookup Key to trace the path.</li>
+        <li><strong>Remove Nodes/Keys:</strong> Enter ID/key → Remove Node/Key.</li>
+        <li><strong>Complete Challenges:</strong> Click Start Challenge for quizzes.</li>
+      </ul>
+    </div>
+  </div>
+  </div>
+</div>
+</div>
+
+
+<div class="container">
+<!-- Chord System Simulation -->
+<div class="canvas-container">
+    <canvas id="chord-ring" width="600" height="600"></canvas>
+</div>
+
+
+<!-- Container for the controls and node details -->
+<div class="controls-container">
+    <div id="controls">
+    <h2>Controls</h2>
+    <div class="input-group">
+        <input type="number" id="node-id-input" min="0" max="63" placeholder="Node ID (0-63)">
+    </div>
+    <button id="add-node">Add Node</button>
+    <button id="remove-node">Remove Node</button>
+    <hr>
+
+    <div class="input-group">
+        <input type="number" id="key-input" placeholder="Key (0-63)">
+    </div>
+    <button id="insert-key">Insert Key</button>
+    <button id="lookup-key">Lookup Key</button>
+    <button id="remove-key">Remove Key</button>
+    <hr>
+
+    <button id="challenge">Start Challenge</button>
+    <div id="feedback"></div>
+    </div>
+
+    <div id="node-details">
+    <h3>Node Details</h3>
+    <p>Select a node by tapping/clicking to view its details</p>
+    </div>
+</div>
+</div>
+
+
+<!-- Load the scripts -->
+<script src="https://cdn.jsdelivr.net/gh/virtual-labs/virtual-style@0.0.8-b/js/script.js"></script>
+<script src="./js/main.js"></script>
+<script src="../assets/js/iframeResize.js"></script>
+        
+        </body>
+</html>

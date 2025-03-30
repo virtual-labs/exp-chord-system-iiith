@@ -1,0 +1,141 @@
+{
+  "version": 2.0,
+  "questions": [
+    {
+      "question": "What is a distributed hash table (DHT)?",
+      "answers": {
+        "a": "A single table stored in a single computer's memory",
+        "b": "A table of key-value pairs stored across multiple computers",
+        "c": "A table stored in a relational database",
+        "d": "A hash table with a fixed size"
+      },
+      "explanations": {
+        "a": "Incorrect. A DHT is distributed across multiple computers.",
+        "b": "Correct. A DHT stores key-value pairs across multiple computers.",
+        "c": "Incorrect. A DHT is not limited to relational databases.",
+        "d": "Incorrect. A DHT can vary in size dynamically."
+      },
+      "correctAnswer": "b",
+      "difficulty": "beginner"
+    },
+    {
+      "question": "What is consistent hashing?",
+      "answers": {
+        "a": "A method to ensure all nodes have exactly the same number of keys",
+        "b": "A technique to map keys/nodes to a modular identifier space (e.g., a ring)",
+        "c": "A way to encrypt data in a hash table",
+        "d": "A static allocation of keys to nodes"
+      },
+      "explanations": {
+        "a": "Incorrect. Consistent hashing balances keys but doesn't enforce strict equality.",
+        "b": "Correct. It maps keys/nodes to a modular ring-like structure.",
+        "c": "Incorrect. It's about distribution, not encryption.",
+        "d": "Incorrect. Nodes can join/leave dynamically."
+      },
+      "correctAnswer": "b",
+      "difficulty": "beginner"
+    },
+    {
+      "question": "What is the primary purpose of the Chord ring?",
+      "answers": {
+        "a": "To encrypt data during transmission",
+        "b": "To organize nodes in a linear sequence",
+        "c": "To distribute keys across nodes in a circular identifier space",
+        "d": "To create a backup of all keys"
+      },
+      "explanations": {
+        "a": "Incorrect. The ring organizes nodes, not encryption.",
+        "b": "Incorrect. The ring is circular, not linear.",
+        "c": "Correct. Nodes and keys are placed on a circular ID space.",
+        "d": "Incorrect. Fault tolerance is handled by successors, not backups."
+      },
+      "correctAnswer": "c",
+      "difficulty": "beginner"
+    },
+    {
+      "question": "When a new node joins the Chord system, what does it do first?",
+      "answers": {
+        "a": "Delete all existing keys",
+        "b": "Contact a central server to register",
+        "c": "Find its successor node on the ring",
+        "d": "Rebalance all keys in the network"
+      },
+      "explanations": {
+        "a": "Incorrect. Nodes don't delete keys on joining.",
+        "b": "Incorrect. Chord is decentralized; no central server exists.",
+        "c": "Correct. It locates its successor to join the ring.",
+        "d": "Incorrect. Only relevant keys are redistributed."
+      },
+      "correctAnswer": "c",
+      "difficulty": "beginner"
+    },
+    {
+      "question": "What is stored in a node's finger table?",
+      "answers": {
+        "a": "All keys owned by the node",
+        "b": "IP addresses of all nodes in the network",
+        "c": "References to nodes at exponentially increasing intervals on the ring",
+        "d": "A copy of the entire Chord ring"
+      },
+      "explanations": {
+        "a": "Incorrect. Finger tables track successors, not keys.",
+        "b": "Incorrect. It only tracks specific intervals, not all nodes.",
+        "c": "Correct. Entries like (n + 2^i) mod 2^m enable efficient lookups.",
+        "d": "Incorrect. Nodes only know partial topology."
+      },
+      "correctAnswer": "c",
+      "difficulty": "medium"
+    },
+    {
+      "question": "How does the Chord system resolve a key lookup?",
+      "answers": {
+        "a": "By broadcasting the query to all nodes",
+        "b": "By iteratively querying successors or finger table entries",
+        "c": "By using a centralized lookup server",
+        "d": "By randomly guessing the node"
+      },
+      "explanations": {
+        "a": "Incorrect. Chord uses O(log N) hops, not broadcasting.",
+        "b": "Correct. It follows successors/fingers to reduce hops.",
+        "c": "Incorrect. Chord is decentralized.",
+        "d": "Incorrect. Lookups follow a structured path."
+      },
+      "correctAnswer": "b",
+      "difficulty": "medium"
+    },
+    {
+      "question": "What happens to keys when a node leaves the Chord ring?",
+      "answers": {
+        "a": "They are permanently lost",
+        "b": "They are redistributed to the node's successor",
+        "c": "They are copied to all remaining nodes",
+        "d": "They are deleted automatically"
+      },
+      "explanations": {
+        "a": "Incorrect. Successors take over the keys.",
+        "b": "Correct. The successor assumes responsibility.",
+        "c": "Incorrect. Only the successor receives the keys.",
+        "d": "Incorrect. Keys are preserved."
+      },
+      "correctAnswer": "b",
+      "difficulty": "medium"
+    },
+    {
+      "question": "Why are finger tables critical in Chord?",
+      "answers": {
+        "a": "They store backups of the system",
+        "b": "They enable O(log N) lookup efficiency",
+        "c": "They prevent node failures",
+        "d": "They encrypt data transfers"
+      },
+      "explanations": {
+        "a": "Incorrect. Finger tables optimize lookups, not backups.",
+        "b": "Correct. They reduce hops via exponential intervals.",
+        "c": "Incorrect. Fault tolerance relies on successors, not fingers.",
+        "d": "Incorrect. They have no role in encryption."
+      },
+      "correctAnswer": "b",
+      "difficulty": "medium"
+    }
+  ]
+}

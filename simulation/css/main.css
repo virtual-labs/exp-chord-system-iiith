@@ -1,0 +1,163 @@
+/* From https://cdn.jsdelivr.net/gh/virtual-labs/virtual-style@0.0.8-b/css/style.css */
+.v-collapsible-instruction-container {
+  position: relative;
+  width: 100%;
+  transition: width 0.2s ease-out;
+  border: 2px solid black;
+  box-sizing: border-box;
+}
+
+.v-collapsible {
+  background-color: transparent;
+  color: "grey";
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  text-align: center;
+  outline: none;
+  font-weight: bold;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.v-collapsible::-moz-focus-inner {
+  border: 0;
+}
+
+.v-collapsible-active,
+.v-collapsible:hover {
+  background-color: "white";
+}
+
+/*The unicode \25BE is for ▾ (Dropdown arrow) */
+.v-collapsible:after {
+  content: "\25BE";
+  color: "grey";
+  font-weight: bold;
+  float: right;
+  margin-right: 5px;
+}
+
+.v-collapsible-active:after {
+  content: "\25B4";
+}
+
+.v-content {
+  padding: 0 20px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+  background-color: "white";
+}
+
+
+
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.container {
+  display: flex;
+  /* flex-direction: column; */
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  background-color: #f0f0f0;
+}
+
+.canvas-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 1rem 1rem;
+}
+
+#chord-ring {
+  width: 100%;
+  height: auto;
+  border: 1px solid #000;
+  background-color: #fff;
+  touch-action: none;
+}
+
+.controls-container {
+  width: 100%;
+  max-width: 600px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+#controls,
+#node-details {
+  padding: 1rem;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.input-group {
+  margin: 0.5rem 0;
+}
+
+input {
+  width: 100%;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+button {
+  width: 100%;
+  padding: 0.8rem;
+  margin: 0.3rem 0;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+#feedback {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .controls-container {
+    grid-template-columns: 1fr;
+  }
+
+  .container {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+
+  button {
+    padding: 0.6rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  #node-details {
+    font-size: 0.9rem;
+  }
+
+  h2,
+  h3 {
+    font-size: 1.1rem;
+  }
+}
