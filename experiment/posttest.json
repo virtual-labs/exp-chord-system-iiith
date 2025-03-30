@@ -2,38 +2,140 @@
   "version": 2.0,
   "questions": [
     {
-      "question": "This is a Sample Question 1?",
+      "question": "After removing Node 20 from the ring, which node inherits its keys?",
       "answers": {
-        "a": "answer1",
-        "b": "answer2",
-        "c": "answer3",
-        "d": "answer4"
+        "a": "Its predecessor",
+        "b": "Its successor",
+        "c": "A random node",
+        "d": "All nodes equally"
       },
       "explanations": {
-        "a": "Explanation 1  <a href='www.google.com'>here</a>",
-        "b": "Explanation 2",
-        "c": "Explanation 2",
-        "d": "Explanation 2"
+        "a": "Incorrect. Predecessors only handle their own key ranges.",
+        "b": "Correct. The successor assumes responsibility for the departed node's keys.",
+        "c": "Incorrect. Key redistribution follows the successor, not randomness.",
+        "d": "Incorrect. Keys are transferred to one node, not distributed."
       },
-      "correctAnswer": "a",
-      "difficulty": "beginner"
+      "correctAnswer": "b",
+      "difficulty": "intermediate"
     },
     {
-      "question": "This is a Sample Question 2?",
+      "question": "In a ring with Nodes 0, 16, 32, and 48, which node stores key 63?",
       "answers": {
-        "a": "answer1",
-        "b": "answer2",
-        "c": "answer3",
-        "d": "answer4"
+        "a": "Node 48",
+        "b": "Node 0",
+        "c": "Node 16",
+        "d": "Node 32"
       },
       "explanations": {
-        "a": "Explanation 1  <a href='www.google.com'>here</a>",
-        "b": "Explanation 2",
-        "c": "Explanation 2",
-        "d": "Explanation 2"
+        "a": "Incorrect. Key 63 exceeds Node 48 and wraps around the ring.",
+        "b": "Correct. Node 0 is the successor for keys >48 and <0 (wrapped).",
+        "c": "Incorrect. Node 16 is not the closest successor.",
+        "d": "Incorrect. Node 32’s range ends at 48."
+      },
+      "correctAnswer": "b",
+      "difficulty": "hard"
+    },
+    {
+      "question": "What happens if you try to add a node with the same ID as an existing node?",
+      "answers": {
+        "a": "The new node replaces the old one",
+        "b": "The system creates a backup node",
+        "c": "The operation fails; duplicate IDs are blocked",
+        "d": "The ring splits into two segments"
+      },
+      "explanations": {
+        "a": "Incorrect. Nodes cannot be overwritten.",
+        "b": "Incorrect. The system prevents duplicates entirely.",
+        "c": "Correct. The lab code checks for and rejects duplicate IDs.",
+        "d": "Incorrect. Duplicates are blocked before affecting the ring."
       },
       "correctAnswer": "c",
       "difficulty": "beginner"
+    },
+    {
+      "question": "In a two-node ring (Nodes 10 and 30), what is finger[3] of Node 10? (m=6)",
+      "answers": {
+        "a": "Node 10",
+        "b": "Node 30",
+        "c": "Node 18",
+        "d": "Node 26"
+      },
+      "explanations": {
+        "a": "Incorrect. Finger entries point to successors, not self.",
+        "b": "Correct. (10 + 2^3) mod 64 = 18, but Node 30 is the successor of 18 in this ring.",
+        "c": "Incorrect. Node 18 does not exist in the two-node setup.",
+        "d": "Incorrect. Node 26 is not part of the ring."
+      },
+      "correctAnswer": "b",
+      "difficulty": "hard"
+    },
+    {
+      "question": "If Node 15 is added between Nodes 10 and 20, which keys transfer from Node 20 to Node 15?",
+      "answers": {
+        "a": "Keys >10 and ≤15",
+        "b": "Keys >15 and ≤20",
+        "c": "All keys from Node 20",
+        "d": "No keys transfer"
+      },
+      "explanations": {
+        "a": "Correct. Node 15 assumes keys between its predecessor (10) and itself.",
+        "b": "Incorrect. Node 20 retains keys >15 and ≤20.",
+        "c": "Incorrect. Only a subset of keys transfers.",
+        "d": "Incorrect. Key redistribution is required on node joins."
+      },
+      "correctAnswer": "a",
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What is the maximum number of hops required to find a key in a ring with 8 nodes?",
+      "answers": {
+        "a": "3",
+        "b": "8",
+        "c": "1",
+        "d": "5"
+      },
+      "explanations": {
+        "a": "Correct. With 8 nodes, lookups take O(log N) ≈ 3 hops.",
+        "b": "Incorrect. The maximum is logarithmic, not linear.",
+        "c": "Incorrect. A single hop is only possible if the key’s successor is directly known.",
+        "d": "Incorrect. 5 exceeds log2(8)."
+      },
+      "correctAnswer": "a",
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "If all fingers of Node 5 point to Node 10, what does this imply about the ring?",
+      "answers": {
+        "a": "The ring has only two nodes",
+        "b": "Node 10 is the predecessor of Node 5",
+        "c": "All nodes are evenly spaced",
+        "d": "Node 5 is faulty"
+      },
+      "explanations": {
+        "a": "Correct. In a two-node ring, all fingers point to the successor.",
+        "b": "Incorrect. Node 10 would be the successor, not predecessor.",
+        "c": "Incorrect. Even spacing would create varied finger entries.",
+        "d": "Incorrect. The finger table reflects ring structure, not faults."
+      },
+      "correctAnswer": "a",
+      "difficulty": "hard"
+    },
+    {
+      "question": "After inserting Key 50, you remove Node 50. Where is the key now stored?",
+      "answers": {
+        "a": "Node 50’s predecessor",
+        "b": "Node 50’s successor",
+        "c": "The key is deleted",
+        "d": "A random node"
+      },
+      "explanations": {
+        "a": "Incorrect. Predecessors do not inherit keys on removal.",
+        "b": "Correct. Successors take over keys of departed nodes.",
+        "c": "Incorrect. Keys are preserved unless explicitly removed.",
+        "d": "Incorrect. Redistribution follows the successor."
+      },
+      "correctAnswer": "b",
+      "difficulty": "intermediate"
     }
   ]
 }

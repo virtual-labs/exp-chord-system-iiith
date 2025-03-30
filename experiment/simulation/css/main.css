@@ -2,46 +2,70 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
+  min-height: 100vh;
 }
 
 .container {
   display: flex;
-  justify-content: space-around;
+  /* flex-direction: column; */
+  justify-content: center;
   align-items: center;
-  height: 100vh;
+  padding: 1rem;
   background-color: #f0f0f0;
 }
 
-#chord-ring {
-  border: 1px solid #000;
-  background-color: #fff;
+.canvas-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 1rem 1rem;
 }
 
-#node-details, #controls {
-  width: 25rem;
+#chord-ring {
+  width: 100%;
+  height: auto;
+  border: 1px solid #000;
+  background-color: #fff;
+  touch-action: none;
+}
+
+.controls-container {
+  width: 100%;
+  max-width: 600px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+#controls,
+#node-details {
   padding: 1rem;
   border: 1px solid #ccc;
   background-color: #f9f9f9;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-#node-details h2, #controls h2 {
-  margin-top: 0;
+.input-group {
+  margin: 0.5rem 0;
 }
 
-button, input {
-  margin: 5px;
-  padding: 5px 10px;
-}
 input {
-  width: 80%;
+  width: 100%;
+  padding: 0.5rem;
+  box-sizing: border-box;
 }
 
 button {
+  width: 100%;
+  padding: 0.8rem;
+  margin: 0.3rem 0;
   background-color: #007bff;
   color: white;
   border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
   cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 button:hover {
@@ -49,7 +73,36 @@ button:hover {
 }
 
 #feedback {
-  margin-top: 10px;
-  font-weight: bold;
-  color: #333;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .controls-container {
+    grid-template-columns: 1fr;
+  }
+
+  .container {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+
+  button {
+    padding: 0.6rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  #node-details {
+    font-size: 0.9rem;
+  }
+
+  h2,
+  h3 {
+    font-size: 1.1rem;
+  }
 }
