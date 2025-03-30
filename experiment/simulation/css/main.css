@@ -1,3 +1,58 @@
+/* From https://cdn.jsdelivr.net/gh/virtual-labs/virtual-style@0.0.8-b/css/style.css */
+.v-collapsible-instruction-container {
+  position: relative;
+  width: 100%;
+  transition: width 0.2s ease-out;
+  border: 2px solid black;
+  box-sizing: border-box;
+}
+
+.v-collapsible {
+  background-color: transparent;
+  color: "grey";
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  text-align: center;
+  outline: none;
+  font-weight: bold;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.v-collapsible::-moz-focus-inner {
+  border: 0;
+}
+
+.v-collapsible-active,
+.v-collapsible:hover {
+  background-color: "white";
+}
+
+/*The unicode \25BE is for ▾ (Dropdown arrow) */
+.v-collapsible:after {
+  content: "\25BE";
+  color: "grey";
+  font-weight: bold;
+  float: right;
+  margin-right: 5px;
+}
+
+.v-collapsible-active:after {
+  content: "\25B4";
+}
+
+.v-content {
+  padding: 0 20px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+  background-color: "white";
+}
+
+
+
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
