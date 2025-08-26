@@ -1,5 +1,3 @@
-### Theory
-
 A distributed hash table (DHT) is a distributed system that provides a lookup service similar to a hash table. Key–value pairs are stored in a DHT, and any participating node can efficiently retrieve the value associated with a given key. Such a system is designed to achieve following objectives. These objectives are inspired by practical applications, and there are many services which rely on DHT to work.
 
 1. Decentralisation : Avoiding a centralised coordination to make system work.

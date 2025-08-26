@@ -1,5 +1,3 @@
-### Procedure
-
 ### 1. Setup and Familiarization
 **Objective:** Understand the lab interface and basic Chord ring structure.
 1. Open the virtual lab in a web browser.
