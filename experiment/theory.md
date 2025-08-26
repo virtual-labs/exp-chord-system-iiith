@@ -9,7 +9,7 @@ Problem at hand is the following: There is a collection of machines/servers on w
 
 A concept central to DHTs is that of an **overlay network**. This network is often called (abused) as “logical network”. This "network" is simply a description of a specific way for nodes to communicate. The scheme is such that it achieves a specific purpose (and we are able to prove performance guarantees mathematically).
 
-## Overview
+### Overview
 
 Recall that a hash-table maps key to values. DHT stores key-value pairs and a participating node can efficiently retrieve the value associated with a given key. In Chord, nodes and keys are assigned say, m bit, identifiers using consistent hashing (SHA-1) for performance guarantees. We therefore have a mechanism to generate ids for both keys and nodes.  Both key and node share same key-space -consistent hashing minimises collisions by distributing both keys and node ids uniformly.
 
@@ -23,7 +23,7 @@ We again, and for the last time, abuse language and say, “node n is *logically
 
 *Inline Exercise 1* : Prove that all the fingers cumulatively cover the entire circle.
 
-## Algorithm
+### Algorithm
 
 The idea for search algorithm can be visualised geometrically : if a node receives a query, we search for, in the induced geometric circle, the *arc* which contains the key. The strategy is to reduce this search space by a constant factor (repeatedly) until we find the node containing the key. Without getting into details of implementation, we provide high level idea of the approach. Interested reader is directed to [K&S]. Note that all computations are done under *mod* 2<sup>m</sup>.
 
@@ -31,7 +31,7 @@ The idea for search algorithm can be visualised geometrically : if a node receiv
 
 By calling above function, we recursively find the best estimate of the *preceding* node (in circle), until we can no longer do so.
 
-## Analysis
+### Analysis
 
 *Inline Exercise 2*: Argue that above routine reduces the search space by at least half.
 
