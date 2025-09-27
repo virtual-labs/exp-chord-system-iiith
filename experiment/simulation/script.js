@@ -10,61 +10,94 @@
                 // Enhanced features
                 this.objectBucket = new Map(); // Store objects this node is responsible for
                 this.fingerObjects = new Array(m).fill(null); // Closest object in each finger interval
-                this.status = 'active'; // active, crashed, byzantine
-                this.isCrashed = false;
-                this.isByzantine = false;
                 this.isCoordinator = false;
+
+                this.status = 'active'; 
             }
 
             // Dual hash functions
+            static fnv1a(str) {
+                const FNV_PRIME = 0x01000193;
+                const FNV_OFFSET = 0x811c9dc5;
+                let hash = FNV_OFFSET;
+                for (let i = 0; i < str.length; i++) {
+                    hash ^= str.charCodeAt(i);
+                    hash = Math.imul(hash, FNV_PRIME);
+                }
+                return hash >>> 0; // Convert to unsigned 32-bit
+            }
+
             static hashNode(id) {
-                // Simple hash function for node placement
-                return id; // For now, direct mapping, can be enhanced
+                // Use FNV-1a hash for node IDs
+                return this.fnv1a(id.toString());
             }
 
-            static hashObject(key, ringSize = 8) {
-                // Hash function for object placement - different from node hash
-                return (key * 7 + 3) % ringSize; // Use dynamic ring size
+            static hashObject(key, ringSize) {
+                // Use FNV-1a hash for objects and map to ring size
+                const hash = this.fnv1a(key.toString());
+                return hash % ringSize;
             }
 
-            findSuccessor(key, isLookup = false) {
-                // Enhanced with fault injection
-                if (this.isCrashed) {
-                    if (isLookup) {
-                        chord.incrementMessageCount();
-                        return null; // Crashed node doesn't respond
-                    }
-                }
-                
-                if (this.isByzantine && Math.random() < 0.3) {
-                    chord.incrementMessageCount();
-                    // Byzantine behavior: return wrong successor occasionally
-                    const nodes = Array.from(chord.nodes.values());
-                    return nodes[Math.floor(Math.random() * nodes.length)];
-                }
-
+            findSuccessor(key, path = []) {
+                // Add the current node to the path
+                path.push(this);
                 chord.incrementMessageCount();
+
+                // Termination condition: If the key is between the current node and its successor,
+                // the successor is the responsible node.
+                if (this.successor && this.inRange(key, this.id, this.successor.id, true)) {
+                    path.push(this.successor); // Add the final responsible node to the path
+                    return { responsible: this.successor, path: path };
+                } 
                 
-                if (this.inRange(key, this.id, this.successor.id, true)) {
-                    return this.successor;
+                // If not, find the best finger to forward the request to.
+                let nextNode = this.closestPrecedingFinger(key);
+
+                // If closestPrecedingFinger returns self, it means our successor is the next hop.
+                // This is the crucial fix: we must forward the request instead of terminating.
+                if (nextNode === this) {
+                    nextNode = this.successor;
                 }
-                let node = this.closestPrecedingFinger(key);
-                if (node === this) {
-                    return this.successor;
+                
+                // Handle case where we might be in a single-node ring or at the end of a chain
+                if (!nextNode || nextNode === this) {
+                    path.push(this);
+                    return { responsible: this, path: path };
                 }
-                return node.findSuccessor(key, isLookup);
+
+                // Recursively call findSuccessor on the next node in the path.
+                return nextNode.findSuccessor(key, path);
             }
 
+
+            // REPLACE the old closestPrecedingFinger method with this one.
             closestPrecedingFinger(key) {
                 chord.incrementMessageCount();
                 
                 for (let i = this.m - 1; i >= 0; i--) {
-                    if (this.fingerTable[i] && 
+                    if (this.fingerTable[i] && !this.fingerTable[i].isCrashed &&
                         this.inRange(this.fingerTable[i].id, this.id, key, false)) {
                         return this.fingerTable[i];
                     }
                 }
                 return this;
+            }
+
+            fixFingers() {
+                const ringSize = Math.pow(2, this.m);
+                
+                for (let i = 0; i < this.m; i++) {
+                    // Calculate the ID this finger should point to or succeed.
+                    let fingerStart = (this.id + Math.pow(2, i)) % ringSize;
+                    
+                    // Use the network lookup to find the successor for the finger's start ID.
+                    // We initiate the lookup from the current node itself.
+                    const { responsible } = this.findSuccessor(fingerStart); 
+                    this.fingerTable[i] = responsible;
+                }
+                
+                // Update finger objects after the table is fixed.
+                this.updateFingerObjectsAfterFix();
             }
 
             inRange(key, start, end, inclusive = false) {
@@ -76,44 +109,31 @@
                 }
             }
 
-            updateFingerTable(nodes) {
+            updateFingerObjectsAfterFix() {
                 const ringSize = Math.pow(2, this.m);
                 for (let i = 0; i < this.m; i++) {
-                    let target = (this.id + Math.pow(2, i)) % ringSize;
-                    this.fingerTable[i] = this.findSuccessorInNodeList(target, nodes);
+                    let start = (this.id + Math.pow(2, i)) % ringSize;
+                    // The end of the interval is the start of the next finger's interval.
+                    let end = (this.id + Math.pow(2, (i + 1))) % ringSize;
                     
-                    // Update finger objects - find closest object in this interval
-                    this.updateFingerObject(i, target, ringSize);
+                    let closestObject = null;
+                    let minDistance = Infinity;
+                    
+                    chord.objects.forEach((objectId, hashedKey) => {
+                        if (this.inRange(hashedKey, start, end, false)) {
+                            let distance = this.circularDistance(hashedKey, start, ringSize);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                closestObject = objectId;
+                            }
+                        }
+                    });
+                    this.fingerObjects[i] = closestObject;
                 }
             }
 
-            updateFingerObject(fingerIndex, target, ringSize) {
-                let start = (this.id + Math.pow(2, fingerIndex)) % ringSize;
-                let end = fingerIndex < this.m - 1 ? 
-                    (this.id + Math.pow(2, fingerIndex + 1)) % ringSize : 
-                    this.id;
-                
-                let closestObject = null;
-                let minDistance = ringSize;
-                
-                // Search through all objects in the ring
-                chord.objects.forEach((objectId, hashedKey) => {
-                    if (this.inRange(hashedKey, start, end, false)) {
-                        let distance = this.circularDistance(hashedKey, target, ringSize);
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                            closestObject = objectId;
-                        }
-                    }
-                });
-                
-                this.fingerObjects[fingerIndex] = closestObject;
-            }
-
             circularDistance(from, to, ringSize) {
-                let clockwise = (to - from + ringSize) % ringSize;
-                let counterclockwise = (from - to + ringSize) % ringSize;
-                return Math.min(clockwise, counterclockwise);
+               return (to - from + ringSize) % ringSize;
             }
 
             addObject(objectId, hashedKey) {
@@ -143,15 +163,7 @@
                 return this.objectBucket.get(hashedKey);
             }
 
-            findSuccessorInNodeList(key, nodes) {
-                let sortedNodes = nodes.sort((a, b) => a.id - b.id);
-                for (let node of sortedNodes) {
-                    if (node.id >= key) {
-                        return node;
-                    }
-                }
-                return sortedNodes[0];
-            }
+            
         }
 
         class ChordRing {
@@ -191,13 +203,31 @@
             generateRandomObjects() {
                 this.objects.clear();
                 
+                // Use a temporary map to store the object data before assigning to nodes
+                const tempObjects = new Map();
+
                 for (let i = 0; i < this.objectCount; i++) {
+                    // The object's visible number (0, 1, 2...) is now the actual key.
+                    const objectKey = i.toString(); 
+
+                    // The object's full ID for internal tracking.
                     const objectId = `obj_${this.currentRound}_${i}`;
-                    const rawKey = Math.floor(Math.random() * 1000); // Random key
-                    const hashedKey = ChordNode.hashObject(rawKey, this.ringSize);
-                    
-                    this.objects.set(hashedKey, objectId);
-                    log(`Generated object ${objectId} with key=${rawKey}, hash=${hashedKey}`, 'lookup');
+
+                    // Hash the simple, predictable key.
+                    const hashedKey = ChordNode.hashObject(objectKey, this.ringSize);
+
+                    // Store the hashedKey -> objectId mapping.
+                    // This is what will be distributed to nodes.
+                    tempObjects.set(hashedKey, objectId);
+
+                    log(`Generated object ${objectId} with key=${objectKey}, hash=${hashedKey}`, 'lookup');
+                }
+
+                // This map is now ready for distribution.
+                this.objects = tempObjects;
+                
+                if (this.objects.size !== this.objectCount) {
+                    log(`Warning: Generated ${this.objects.size} objects instead of ${this.objectCount} due to hash collisions. Try a larger ring size.`, 'message');
                 }
             }
 
@@ -227,9 +257,10 @@
                 });
                 
                 // Update finger objects for all nodes
+                log('Updating finger-object caches for all nodes...', 'node');
                 this.nodes.forEach(node => {
                     if (!node.isCrashed) {
-                        node.updateFingerTable(Array.from(this.nodes.values()));
+                        node.updateFingerObjectsAfterFix(); 
                     }
                 });
             }
@@ -282,22 +313,49 @@
 
             addNode(id) {
                 if (this.nodes.has(id)) {
-                    log(`Node ${id} already exists in the ring`, 'message');
+                    log(`Position ${id} is already occupied in the ring`, 'message');
                     return false;
                 }
 
-                const hashedId = ChordNode.hashNode(id) % this.ringSize;
-                const node = new ChordNode(hashedId, this.m);
-                node.originalId = id; // Keep track of original ID
-                this.nodes.set(hashedId, node);
-                log(`Node ${id} (hashed to ${hashedId}) added to the ring`, 'node');
+                const newNode = new ChordNode(id, this.m);
                 
-                this.stabilizeRing();
-                this.updateFingerTables();
+                if (this.nodes.size === 0) {
+                    // This is the first node. It forms a ring by itself.
+                    newNode.successor = newNode;
+                    newNode.predecessor = newNode;
+                    this.nodes.set(id, newNode);
+                } else {
+                    // Joining an existing ring. Get any active node to start the process.
+                    const activeNodes = Array.from(this.nodes.values()).filter(n => !n.isCrashed);
+                    if (activeNodes.length === 0) {
+                        log("Cannot add node, all existing nodes are crashed.", "message");
+                        return false;
+                    }
+                    const entryNode = activeNodes[0];
+
+                    // 1. Ask the network to find the successor for the new node's ID.
+                    const { responsible: successorNode } = entryNode.findSuccessor(id);
+                    const predecessorNode = successorNode.predecessor;
+
+                    // 2. Insert the new node into the list.
+                    newNode.successor = successorNode;
+                    newNode.predecessor = predecessorNode;
+                    this.nodes.set(id, newNode);
+
+                    // 3. Update the predecessor and successor to point to the new node.
+                    predecessorNode.successor = newNode;
+                    successorNode.predecessor = newNode;
+                }
+
+                log(`Node ${id} added, now updating finger tables...`, 'node');
+                
+                // 4. Update finger tables across the ring.
+                this.updateAllFingerTables();
+
                 log(`Ring stabilized with ${this.nodes.size} nodes`, 'success');
-                
                 return true;
             }
+
 
             removeNode(id) {
                 if (!this.nodes.has(id)) {
@@ -305,134 +363,112 @@
                     return false;
                 }
 
+                const leavingNode = this.nodes.get(id);
+
+                // If this is the last node, just clear the ring
+                if (this.nodes.size === 1) {
+                    this.clear();
+                    updateVisualization();
+                    return true;
+                }
+
+                const successor = leavingNode.successor;
+                const predecessor = leavingNode.predecessor;
+
+                // 1. Transfer any stored objects to the successor node.
+                if (leavingNode.objectBucket.size > 0) {
+                    log(`Transferring ${leavingNode.objectBucket.size} objects from Node ${id} to Node ${successor.id}`, 'node');
+                    leavingNode.objectBucket.forEach((objectId, hashedKey) => {
+                        successor.addObject(objectId, hashedKey);
+                    });
+                }
+
+                // 2. "Stitch" the ring back together by updating the neighbors.
+                predecessor.successor = successor;
+                successor.predecessor = predecessor;
+                
+                // 3. Remove the node from the map.
                 this.nodes.delete(id);
                 this.hasRemovedNode = true;
                 log(`Node ${id} removed from the ring`, 'node');
                 
-                this.stabilizeRing();
-                this.updateFingerTables();
-                log(`Ring stabilized after node removal`, 'success');
+                // 4. A node leaving may invalidate other nodes' finger tables. Update them.
+                this.updateAllFingerTables();
                 
+                log(`Ring stabilized after node removal`, 'success');
                 return true;
             }
 
-            stabilizeRing() {
-                const nodeArray = Array.from(this.nodes.values()).sort((a, b) => a.id - b.id);
-                
-                for (let i = 0; i < nodeArray.length; i++) {
-                    const current = nodeArray[i];
-                    const next = nodeArray[(i + 1) % nodeArray.length];
-                    const prev = nodeArray[(i - 1 + nodeArray.length) % nodeArray.length];
-                    
-                    current.successor = next;
-                    current.predecessor = prev;
-                }
-            }
 
-            updateFingerTables() {
-                const nodeArray = Array.from(this.nodes.values());
-                nodeArray.forEach(node => {
-                    node.updateFingerTable(nodeArray);
+            updateAllFingerTables() {
+                // This orchestrator function tells each node to fix its own fingers.
+                // Each node will then use the network to do so independently.
+                log('Updating all finger tables across the ring...', 'node');
+                this.nodes.forEach(node => {
+                    if (!node.isCrashed) {
+                        node.fixFingers();
+                    }
                 });
             }
 
             lookup(key, startNodeId = null, isObjectLookup = false) {
-                if (this.nodes.size === 0) {
-                    log('Cannot perform lookup: ring is empty', 'message');
-                    return { path: [], responsible: null, hops: 0, found: false, object: null };
-                }
+    if (this.nodes.size === 0) {
+        log('Cannot perform lookup: ring is empty', 'message');
+        return { path: [], responsible: null, hops: 0, found: false, object: null };
+    }
 
-                this.hasPerformedLookup = true;
-                this.roundMessagesCount = 0; // Reset round message count
+    this.hasPerformedLookup = true;
+    this.roundMessagesCount = 0;
 
-                const hashedKey = isObjectLookup ? ChordNode.hashObject(key, this.ringSize) : key;
-                let startNode = startNodeId ? this.nodes.get(startNodeId) : Array.from(this.nodes.values())[0];
-                
-                // Ensure start node is not crashed
-                if (startNode && startNode.isCrashed) {
-                    const activeNodes = Array.from(this.nodes.values()).filter(n => !n.isCrashed);
-                    if (activeNodes.length === 0) {
-                        log('All nodes are crashed!', 'message');
-                        return { path: [], responsible: null, hops: 0, found: false, object: null };
-                    }
-                    startNode = activeNodes[0];
-                }
-                
-                let path = [startNode];
-                let current = startNode;
+    const hashedKey = isObjectLookup ? ChordNode.hashObject(key, this.ringSize) : key;
+    
+    const activeNodes = Array.from(this.nodes.values()).filter(n => !n.isCrashed);
+    if (activeNodes.length === 0) {
+        log('All nodes are crashed!', 'message');
+        return { path: [], responsible: null, hops: 0, found: false, object: null };
+    }
+    let startNode = startNodeId ? this.nodes.get(startNodeId) : activeNodes[0];
+    if(startNode.isCrashed) startNode = activeNodes[0];
+    
+    log(`Starting lookup for ${isObjectLookup ? 'object' : 'key'} ${key} (hash=${hashedKey}) from node ${startNode.id}`, 'lookup');
 
-                log(`Starting lookup for ${isObjectLookup ? 'object' : 'key'} ${key} (hash=${hashedKey}) from node ${startNode.id}`, 'lookup');
+    const { responsible, path } = startNode.findSuccessor(hashedKey);
+    
+    const hops = path.length > 1 ? path.length - 1 : 0;
+    this.lookupHistory.push(hops);
 
-                // Enhanced lookup with fault tolerance
-                let maxIterations = 10; // Prevent infinite loops
-                while (maxIterations > 0 && !current.inRange(hashedKey, current.id, current.successor?.id || current.id, true)) {
-                    let next = current.closestPrecedingFinger(hashedKey);
-                    if (next === current || next.isCrashed) {
-                        next = current.successor;
-                    }
-                    
-                    // Handle crashed nodes in path - find closest active successor
-                    if (next && next.isCrashed) {
-                        log(`Node ${next.id} is crashed, finding alternate route`, 'message');
-                        const activeNodes = Array.from(this.nodes.values()).filter(n => !n.isCrashed);
-                        if (activeNodes.length === 0) {
-                            log('All nodes are crashed!', 'message');
-                            break;
-                        }
-                        // Find closest active node in the direction of the key
-                        next = activeNodes.reduce((closest, node) => {
-                            const currentDistance = this.circularDistance(current.id, hashedKey, this.ringSize);
-                            const nodeDistance = this.circularDistance(node.id, hashedKey, this.ringSize);
-                            return nodeDistance < currentDistance ? node : closest;
-                        }, activeNodes[0]);
-                    }
-                    
-                    if (!next || next === current) break;
-                    
-                    path.push(next);
-                    log(`Routing from node ${current.id} to node ${next.id}`, 'lookup');
-                    current = next;
-                    maxIterations--;
-                }
+    let found = false;
+    let object = null;
 
-                const hops = path.length - 1;
-                this.lookupHistory.push(hops);
+    if (isObjectLookup && responsible) {
+        // For object lookups, we need to check if the specific object exists
+        const targetObjectId = `obj_${this.currentRound}_${key}`;
+        const storedObject = responsible.getObject(hashedKey);
+        found = storedObject === targetObjectId;
+        
+        if (found) {
+            object = storedObject;
+            log(`Object ${object} found at node ${responsible.id} in ${hops} hops`, 'success');
+        } else {
+            log(`Object ${key} not found at responsible node ${responsible.id}`, 'message');
+        }
+    } else if (responsible && !isObjectLookup) { // <-- THIS IS THE FIX!
+        // This part is now ONLY for key lookups.
+        log(`Key ${key} resolves to node ${responsible.id} in ${hops} hops`, 'success');
+        found = true; // For key lookups, finding the node counts as success.
+    }
 
-                // Determine responsible node and check for object
-                const responsibleNode = current.successor || current;
-                let found = false;
-                let object = null;
+    log(`Lookup completed: ${this.roundMessagesCount} messages sent this lookup`, 'lookup');
 
-                if (isObjectLookup && responsibleNode) {
-                    found = responsibleNode.hasObject(hashedKey);
-                    if (found) {
-                        object = responsibleNode.getObject(hashedKey);
-                        log(`Object ${object} found at node ${responsibleNode.id} in ${hops} hops`, 'success');
-                    } else {
-                        if (responsibleNode.isCrashed) {
-                            log(`Object lookup failed: responsible node ${responsibleNode.id} is crashed`, 'message');
-                        } else if (responsibleNode.isByzantine) {
-                            log(`Object lookup may be compromised: responsible node ${responsibleNode.id} is Byzantine`, 'message');
-                        } else {
-                            log(`Object not found at responsible node ${responsibleNode.id}`, 'message');
-                        }
-                    }
-                } else {
-                    log(`Key ${key} resolves to node ${responsibleNode.id} in ${hops} hops`, 'success');
-                    found = true; // For key lookups, finding the responsible node counts as success
-                }
-
-                log(`Lookup completed: ${this.roundMessagesCount} messages sent this lookup`, 'lookup');
-
-                return {
-                    path: path,
-                    responsible: responsibleNode,
-                    hops: hops,
-                    found: found,
-                    object: object,
-                    messagesThisLookup: this.roundMessagesCount
-                };
-            }
+    return {
+        path: path,
+        responsible: responsible,
+        hops: hops,
+        found: found,
+        object: object,
+        messagesThisLookup: this.roundMessagesCount
+    };
+}
 
             circularDistance(from, to, ringSize) {
                 let clockwise = (to - from + ringSize) % ringSize;
@@ -457,6 +493,26 @@
 
             updateChallengeDisplay() {
                 // Challenge display removed - method kept for compatibility
+            }
+
+            initializeNodes(count) {
+                this.clear();
+                
+                // Generate evenly spaced IDs around the ring
+                const spacing = Math.floor(this.ringSize / count);
+                for (let i = 0; i < count; i++) {
+                    const id = (i * spacing) % this.ringSize;
+                    this.addNode(id);
+                }
+                
+                // Assign one random node as coordinator
+                const nodes = Array.from(this.nodes.values());
+                const randomNode = nodes[Math.floor(Math.random() * nodes.length)];
+                nodes.forEach(node => node.isCoordinator = false);
+                randomNode.isCoordinator = true;
+                this.coordinator = randomNode;
+                
+                log(`Initialized ${count} nodes with even spacing`, 'success');
             }
 
             clear() {
@@ -769,16 +825,33 @@
                         .text("🔥");
                 }
 
-                // Show object count if any
+                // Show object box if node has objects
                 if (node.objectBucket.size > 0) {
-                    nodeGroup.append("text")
-                        .attr("text-anchor", "middle")
-                        .attr("dy", "35px")
-                        .attr("font-size", "12px")
-                        .attr("font-weight", "bold")
-                        .attr("fill", "#059669")
-                        .style("text-shadow", "0 1px 2px rgba(255, 255, 255, 0.8)")
-                        .text(`📦${node.objectBucket.size}`);
+                    // Create object box group
+                    const boxGroup = nodeGroup.append("g")
+                        .attr("transform", "translate(30, -15)");
+
+                    // Box background
+                    boxGroup.append("rect")
+                        .attr("width", 60)
+                        .attr("height", node.objectBucket.size * 15 + 10)
+                        .attr("rx", 4)
+                        .attr("ry", 4)
+                        .attr("fill", "#dcfce7")
+                        .attr("stroke", "#059669")
+                        .attr("stroke-width", 1)
+                        .style("opacity", 0.9);
+
+                    // List objects
+                    const objects = Array.from(node.objectBucket.values());
+                    objects.forEach((objId, index) => {
+                        boxGroup.append("text")
+                            .attr("x", 5)
+                            .attr("y", 15 + index * 15)
+                            .attr("font-size", "10px")
+                            .attr("fill", "#059669")
+                            .text(`📦 ${objId.split('_')[2]}`); // Show just the object number
+                    });
                 }
             });
 
@@ -944,20 +1017,7 @@
             `;
         }
 
-        function addNode() {
-            const nodeId = parseInt(document.getElementById('nodeId').value);
-            if (isNaN(nodeId) || nodeId < 0 || nodeId >= chord.ringSize) {
-                alert('Please enter a valid node ID between 0 and ' + (chord.ringSize - 1));
-                return;
-            }
 
-            if (chord.addNode(nodeId)) {
-                updateVisualization();
-                document.getElementById('nodeId').value = '';
-            } else {
-                alert('Node with ID ' + nodeId + ' already exists!');
-            }
-        }
 
         function removeNode() {
             const nodeId = parseInt(document.getElementById('removeNodeId').value);
@@ -976,6 +1036,7 @@
         }
 
         function addRandomNode() {
+            // Get all available positions in the ring
             const availableIds = [];
             for (let i = 0; i < chord.ringSize; i++) {
                 if (!chord.nodes.has(i)) {
@@ -984,13 +1045,18 @@
             }
 
             if (availableIds.length === 0) {
-                alert('All node positions are occupied!');
+                alert('All positions in the ring are occupied!');
                 return;
             }
 
-            const randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
-            chord.addNode(randomId);
+            // Pick a random available position
+            const randomIndex = Math.floor(Math.random() * availableIds.length);
+            const selectedId = availableIds[randomIndex];
+            
+            // Add node at the selected position
+            chord.addNode(selectedId);
             updateVisualization();
+            updateStats();
         }
 
         function performLookup() {
@@ -1033,77 +1099,11 @@
             animateLookupPath(result.path);
         }
 
-        function animateLookupPath(path) {
-            // Clear previous animations
-            svg.selectAll(".lookup-path").remove();
-            svg.selectAll(".node-highlight").remove();
-
-            if (path.length < 2) return;
-
-            // Highlight nodes in the path
-            path.forEach((node, index) => {
-                const angle = (node.id * 2 * Math.PI) / chord.ringSize - Math.PI / 2;
-                const x = centerX + radius * Math.cos(angle);
-                const y = centerY + radius * Math.sin(angle);
-
-                setTimeout(() => {
-                    svg.append("circle")
-                        .attr("class", "node-highlight")
-                        .attr("cx", x)
-                        .attr("cy", y)
-                        .attr("r", 25)
-                        .attr("fill", "none")
-                        .attr("stroke", "#dc2626")
-                        .attr("stroke-width", 3)
-                        .style("opacity", 0)
-                        .transition()
-                        .duration(300)
-                        .style("opacity", 1)
-                        .transition()
-                        .delay(800)
-                        .duration(300)
-                        .style("opacity", 0)
-                        .remove();
-                }, index * 500);
-            });
-
-            // Draw path lines
-            for (let i = 0; i < path.length - 1; i++) {
-                const node1 = path[i];
-                const node2 = path[i + 1];
-                
-                const angle1 = (node1.id * 2 * Math.PI) / chord.ringSize - Math.PI / 2;
-                const angle2 = (node2.id * 2 * Math.PI) / chord.ringSize - Math.PI / 2;
-                const x1 = centerX + radius * Math.cos(angle1);
-                const y1 = centerY + radius * Math.sin(angle1);
-                const x2 = centerX + radius * Math.cos(angle2);
-                const y2 = centerY + radius * Math.sin(angle2);
-
-                setTimeout(() => {
-                    svg.append("line")
-                        .attr("class", "lookup-path")
-                        .attr("x1", x1)
-                        .attr("y1", y1)
-                        .attr("x2", x2)
-                        .attr("y2", y2)
-                        .style("opacity", 0)
-                        .transition()
-                        .duration(300)
-                        .style("opacity", 1)
-                        .transition()
-                        .delay(1000)
-                        .duration(500)
-                        .style("opacity", 0)
-                        .remove();
-                }, i * 500);
-            }
-        }
-
         // New enhanced functions
         function performObjectLookup() {
-            const key = parseInt(document.getElementById('objectLookupKey').value);
-            if (isNaN(key)) {
-                alert('Please enter a valid object key');
+            const key = document.getElementById('objectLookupKey').value;
+            if (key === '' || isNaN(parseInt(key))) {
+                alert('Please enter a valid object number to look up.');
                 return;
             }
 
@@ -1112,12 +1112,17 @@
                 return;
             }
 
+            // THIS IS THE CORRECT WAY TO CALL THE LOOKUP:
+            // We pass the user's raw input (e.g., "100") and the 'true' flag.
+            // The `lookup` function will now handle hashing AND checking the node's bucket.
             const result = chord.lookup(key, null, true);
+            
             const resultDiv = document.getElementById('lookupResult');
             
+            // Now we can trust the 'result.found' value completely because the main lookup function gave it to us.
             if (result.path.length > 0) {
-                const pathStr = result.path.map(node => node.id).join(' → ');
-                const statusColor = result.found ? '#059669' : '#dc2626';
+                const pathStr = result.path.map(node => node ? node.id : 'N/A').join(' → ');
+                const statusColor = result.found ? '#059669' : '#dc2626'; // Green if found, Red if not
                 const statusText = result.found ? 'Found' : 'Not Found';
                 
                 resultDiv.innerHTML = `
@@ -1126,10 +1131,10 @@
                             🎯 Object ${key} Lookup Result
                         </h4>
                         <div style="color: #451a03;">
-                            <strong>Status:</strong> <span style="color: ${statusColor};">${statusText}</span><br>
+                            <strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span><br>
                             <strong>Hash:</strong> ${ChordNode.hashObject(key, chord.ringSize)}<br>
                             <strong>Path:</strong> ${pathStr}<br>
-                            <strong>Responsible Node:</strong> ${result.responsible.id}<br>
+                            <strong>Responsible Node:</strong> ${result.responsible ? result.responsible.id : 'N/A'}<br>
                             <strong>Hops:</strong> ${result.hops}<br>
                             <strong>Messages:</strong> ${result.messagesThisLookup}<br>
                             ${result.object ? `<strong>Object ID:</strong> ${result.object}` : ''}
@@ -1163,41 +1168,7 @@
             log(`New round started with ${objectCount} objects`, 'success');
         }
 
-        function injectCrashFault() {
-            const nodeId = parseInt(document.getElementById('faultNodeId').value);
-            if (isNaN(nodeId) || !chord.nodes.has(nodeId)) {
-                alert('Please enter a valid node ID that exists in the ring');
-                return;
-            }
-            
-            chord.injectFault(nodeId, 'crash');
-            updateVisualization();
-            updateStats();
-        }
 
-        function injectByzantineFault() {
-            const nodeId = parseInt(document.getElementById('faultNodeId').value);
-            if (isNaN(nodeId) || !chord.nodes.has(nodeId)) {
-                alert('Please enter a valid node ID that exists in the ring');
-                return;
-            }
-            
-            chord.injectFault(nodeId, 'byzantine');
-            updateVisualization();
-            updateStats();
-        }
-
-        function clearFaults() {
-            chord.nodes.forEach(node => {
-                node.isCrashed = false;
-                node.isByzantine = false;
-                node.status = 'active';
-            });
-            
-            log('All faults cleared', 'success');
-            updateVisualization();
-            updateStats();
-        }
 
         function showFingerTables() {
             chord.showFingers = true;

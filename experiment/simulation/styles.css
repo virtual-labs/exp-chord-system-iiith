@@ -505,15 +505,6 @@
             filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4));
         }
 
-        .lookup-path {
-            stroke: url(#lookupGradient);
-            stroke-width: 5px;
-            opacity: 1;
-            stroke-dasharray: 15, 8;
-            animation: dash 1.5s linear infinite, pathglow 2s ease-in-out infinite alternate;
-            filter: drop-shadow(0 0 10px #dc2626);
-        }
-
         @keyframes dash {
             to { stroke-dashoffset: -23; }
         }
