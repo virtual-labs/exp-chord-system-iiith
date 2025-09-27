@@ -29,7 +29,6 @@
                         <option value="3" selected>8 positions (2^3)</option>
                         <option value="4">16 positions (2^4)</option>
                         <option value="5">32 positions (2^5)</option>
-                        <option value="6">64 positions (2^6)</option>
                     </select>
                 </div>
             </div>
@@ -40,12 +39,6 @@
                     ➕ Add Random Node
                 </button>
                 
-                <div class="input-group">
-                    <label for="nodeId">Add Specific Node ID:</label>
-                    <input type="number" id="nodeId" min="0" max="7" value="0">
-                    <button class="btn btn-secondary" onclick="addNode()">Add Node</button>
-                </div>
-
                 <div class="input-group">
                     <label for="removeNodeId">Remove Node ID:</label>
                     <input type="number" id="removeNodeId" min="0" max="7">
@@ -100,25 +93,7 @@
                 </button>
             </div>
 
-            <div class="control-section">
-                <h3>Fault Injection</h3>
-                <div class="input-group">
-                    <label for="faultNodeId">Target Node ID:</label>
-                    <input type="number" id="faultNodeId" min="0" max="7" value="0">
-                </div>
-                
-                <button class="btn btn-warning" onclick="injectCrashFault()">
-                    💥 Inject Crash Fault
-                </button>
-                
-                <button class="btn btn-danger" onclick="injectByzantineFault()">
-                    🔥 Inject Byzantine Fault
-                </button>
-                
-                <button class="btn btn-secondary" onclick="clearFaults()">
-                    🔧 Clear All Faults
-                </button>
-            </div>
+
         </div>
 
         <div class="experiment-area">
@@ -146,14 +121,6 @@
                     <div class="legend-item">
                         <div class="legend-color" style="background: #f59e0b;"></div>
                         <span>Coordinator</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #6b7280;"></div>
-                        <span>Crashed</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #7c2d12;"></div>
-                        <span>Byzantine</span>
                     </div>
                 </div>
                 <svg class="chord-ring" id="chordRing"></svg>
@@ -228,11 +195,7 @@
                     <div class="stat-description">Current round coordinator</div>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-value" id="faultCount">0</div>
-                    <div class="stat-label">Faulty Nodes</div>
-                    <div class="stat-description">Crashed + Byzantine</div>
-                </div>
+
             </div>
 
             <div class="status-section">
