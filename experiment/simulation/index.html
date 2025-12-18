@@ -1,74 +1,330 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chord System Virtual Lab</title>
-  <link rel="stylesheet" href="./css/main.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chord DHT Interactive Simulation</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    
 </head>
 <body>
-<!-- Instructions -->
-<div class="container">
-<div class="columns is-centered">
-  <div class="column">
-  <div class="v-collapsible-instruction-container v-instruction-container">
-    <div class="v-collapsible is-size-5">Instructions</div>
-    <div class="v-content" style="text-align: left; padding-left: 10%; padding-right: 10%;">
-      <ul style="list-style: disc;">
-        <li><strong>Add Nodes:</strong> Enter ID (0-63) → Add Node.</li>
-        <li><strong>Insert Keys:</strong> Enter key (0-63) → Insert Key.</li>
-        <li><strong>Inspect Nodes:</strong> Click/tap nodes to view details (successor, fingers, keys).</li>
-        <li><strong>Simulate Lookups:</strong> Enter key → Lookup Key to trace the path.</li>
-        <li><strong>Remove Nodes/Keys:</strong> Enter ID/key → Remove Node/Key.</li>
-        <li><strong>Complete Challenges:</strong> Click Start Challenge for quizzes.</li>
-      </ul>
+    <div class="app-container">
+        <header class="header">
+            <h1>
+                🔗 Chord DHT Interactive Simulation
+                <div class="status-indicator"></div>
+            </h1>
+            <div style="font-size: 0.9em; opacity: 0.9;">
+                Distributed Hash Table Visualization
+            </div>
+        </header>
+
+        <div class="controls-panel">
+            <div class="control-section">
+                <h3>Ring Configuration</h3>
+                <div class="input-group">
+                    <label>Ring Size (2^m)</label>
+                    <select id="ringSizeSelect">
+                        <option value="3" selected>8 positions (2^3)</option>
+                        <option value="4">16 positions (2^4)</option>
+                        <option value="5">32 positions (2^5)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Node Management</h3>
+                <button class="btn btn-primary" onclick="addRandomNode()">
+                    ➕ Add Random Node
+                </button>
+                
+                <div class="input-group">
+                    <label for="removeNodeId">Remove Node ID:</label>
+                    <input type="number" id="removeNodeId" min="0" max="7">
+                    <button class="btn btn-danger" onclick="removeNode()">Remove Node</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Visualization Controls</h3>
+                <button class="btn btn-secondary" onclick="showFingerTables()">
+                    👁️ Show Finger Tables
+                </button>
+                
+                <button class="btn btn-warning" onclick="hideFingerTables()">
+                    🙈 Hide Finger Tables
+                </button>
+                
+                <button class="btn btn-danger" onclick="clearRing()">
+                    🧹 Clear Ring
+                </button>
+            </div>
+
+            <div class="control-section">
+                <h3>Key Lookup</h3>
+                <div class="input-group">
+                    <label for="lookupKey">Key to lookup:</label>
+                    <input type="number" id="lookupKey" min="0" max="7" value="0">
+                    <button class="btn btn-primary" onclick="performLookup()">🔍 Lookup Key</button>
+                </div>
+                
+                <div class="input-group">
+                    <label for="objectLookupKey">Object to lookup:</label>
+                    <input type="number" id="objectLookupKey" min="0" max="999" value="100">
+                    <button class="btn btn-secondary" onclick="performObjectLookup()">🎯 Lookup Object</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Object Management</h3>
+                <div class="input-group">
+                    <label for="objectCount">Objects per Round:</label>
+                    <select id="objectCount" name="objectCount" style="height: 45px; padding: 10px; font-size: 14px;">
+                        <option value="3">3 objects</option>
+                        <option value="5" selected>5 objects</option>
+                        <option value="8">8 objects</option>
+                        <option value="10">10 objects</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-primary" onclick="startNewRound()">
+                    🚀 Start New Round
+                </button>
+            </div>
+
+
+        </div>
+
+        <div class="experiment-area">
+            <div class="simulation-area">
+                <button class="info-button" onclick="toggleInfoModal()" title="Click for feature guide">
+                    ℹ️
+                </button>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3b82f6;"></div>
+                        <span>Active Nodes</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #10b981;"></div>
+                        <span>Successors</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #8b5cf6; opacity: 0.7;"></div>
+                        <span>Finger Table</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #dc2626;"></div>
+                        <span>Lookup Path</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f59e0b;"></div>
+                        <span>Coordinator</span>
+                    </div>
+                </div>
+                <svg class="chord-ring" id="chordRing"></svg>
+            </div>
+        </div>
+
+        <div class="observations-panel">
+            <div class="status-section">
+                <h4>Activity Logs</h4>
+                <div class="logs" id="logs">
+                    <div class="log-entry message">[System] Chord DHT Simulation initialized</div>
+                    <div class="log-entry message">[Info] Add nodes to build the Chord ring</div>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <h4>Ring Statistics</h4>
+                <div class="stat-card">
+                    <div class="stat-value" id="nodeCount">0</div>
+                    <div class="stat-label">Active Nodes</div>
+                    <div class="stat-description">Currently in the ring</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="ringSize">8</div>
+                    <div class="stat-label">Ring Size</div>
+                    <div class="stat-description">Total positions (2^m)</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="objectsStored">0</div>
+                    <div class="stat-label">Objects Stored</div>
+                    <div class="stat-description">Current round objects</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="currentRound">0</div>
+                    <div class="stat-label">Current Round</div>
+                    <div class="stat-description">Simulation round</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="lookupHops">0</div>
+                    <div class="stat-label">Last Lookup Hops</div>
+                    <div class="stat-description">Steps in last search</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="avgHops">0.0</div>
+                    <div class="stat-label">Average Hops</div>
+                    <div class="stat-description">Across all lookups</div>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <h4>Message Statistics</h4>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalMessages">0</div>
+                    <div class="stat-label">Total Messages</div>
+                    <div class="stat-description">All experiment messages</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="roundMessages">0</div>
+                    <div class="stat-label">Round Messages</div>
+                    <div class="stat-description">Current round messages</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="coordinator">None</div>
+                    <div class="stat-label">Coordinator</div>
+                    <div class="stat-description">Current round coordinator</div>
+                </div>
+
+
+            </div>
+
+            <div class="status-section">
+                <h4>Node Information</h4>
+                <div id="nodeInfo">
+                    <p style="color: #6b7280;">Click on a node to see its details</p>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <h4>Lookup Results</h4>
+                <div id="lookupResult">
+                    <p style="color: #6b7280;">Perform a lookup to see results</p>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-  </div>
-</div>
-</div>
 
-
-<div class="container">
-<!-- Chord System Simulation -->
-<div class="canvas-container">
-    <canvas id="chord-ring" width="600" height="600"></canvas>
-</div>
-
-
-<!-- Container for the controls and node details -->
-<div class="controls-container">
-    <div id="controls">
-    <h2>Controls</h2>
-    <div class="input-group">
-        <input type="number" id="node-id-input" min="0" max="63" placeholder="Node ID (0-63)">
-    </div>
-    <button id="add-node">Add Node</button>
-    <button id="remove-node">Remove Node</button>
-    <hr>
-
-    <div class="input-group">
-        <input type="number" id="key-input" placeholder="Key (0-63)">
-    </div>
-    <button id="insert-key">Insert Key</button>
-    <button id="lookup-key">Lookup Key</button>
-    <button id="remove-key">Remove Key</button>
-    <hr>
-
-    <button id="challenge">Start Challenge</button>
-    <div id="feedback"></div>
+    <!-- Mobile Portrait Orientation Overlay -->
+    <div class="rotate-device-overlay">
+        <div class="rotate-icon">📱➡️📲</div>
+        <h2>Please Rotate Your Device</h2>
+        <p>For the best experience, please rotate your device to landscape mode to view this Chord DHT simulation.</p>
     </div>
 
-    <div id="node-details">
-    <h3>Node Details</h3>
-    <p>Select a node by tapping/clicking to view its details</p>
+    <!-- Info Modal -->
+    <div id="infoModal" class="info-modal" onclick="closeInfoModal(event)">
+        <div class="info-modal-content" onclick="event.stopPropagation()">
+            <div class="info-modal-header">
+                <h2>🔗 Chord DHT Feature Guide</h2>
+                <button class="close-button" onclick="closeInfoModal()">&times;</button>
+            </div>
+            <div class="info-modal-body">
+                <div class="feature-section">
+                    <h3>🔧 Ring Configuration</h3>
+                    <ul>
+                        <li><strong>Ring Size:</strong> Sets the total positions in the hash ring (2^m). Larger rings allow more nodes but increase hop counts.</li>
+                        <li><strong>Recommended:</strong> Start with 8 positions (2^3) for learning, use 32+ for performance testing.</li>
+                    </ul>
+                </div>
+
+                <div class="feature-section">
+                    <h3>🖥️ Node Management</h3>
+                    <ul>
+                        <li><strong>Add Random Node:</strong> Automatically places a node at a random position on the ring.</li>
+                        <li><strong>Add Specific Node:</strong> Place a node at an exact position (0 to ring size - 1).</li>
+                        <li><strong>Remove Node:</strong> Removes a node and triggers ring stabilization.</li>
+                        <li><strong>Best Practice:</strong> Add 4-6 nodes for optimal visualization and O(log n) performance.</li>
+                    </ul>
+                </div>
+
+                <div class="feature-section">
+                    <h3>👁️ Visualization Controls</h3>
+                    <ul>
+                        <li><strong>Show Finger Tables:</strong> Displays purple lines showing each node's routing shortcuts.</li>
+                        <li><strong>Hide Finger Tables:</strong> Removes finger table visualization for cleaner view.</li>
+                        <li><strong>Clear Ring:</strong> Removes all nodes and starts fresh.</li>
+                    </ul>
+                </div>
+
+                <div class="feature-section">
+                    <h3>🔍 Key Lookup</h3>
+                    <ul>
+                        <li><strong>Key Lookup:</strong> Find which node is responsible for a specific key (0 to ring size - 1).</li>
+                        <li><strong>Object Lookup:</strong> Search for objects using their original key (0-999). The system hashes it to find the responsible node.</li>
+                        <li><strong>Path Visualization:</strong> Red lines show the actual routing path taken during lookup.</li>
+                        <li><strong>Performance:</strong> Watch hop counts - should be O(log n) where n = number of nodes.</li>
+                    </ul>
+                </div>
+
+                <div class="feature-section">
+                    <h3>📦 Object Management</h3>
+                    <ul>
+                        <li><strong>Objects per Round:</strong> Choose how many random objects to distribute (3, 5, 8, or 10).</li>
+                        <li><strong>Start New Round:</strong> Generates new random objects and distributes them to responsible nodes.</li>
+                        <li><strong>Coordinator:</strong> One node is randomly selected as coordinator for each round.</li>
+                        <li><strong>Distribution:</strong> Objects are automatically assigned based on consistent hashing.</li>
+                    </ul>
+                </div>
+
+                <div class="feature-section">
+                    <h3>⚠️ Fault Injection</h3>
+                    <ul>
+                        <li><strong>Crash Fault:</strong> Makes a node completely unresponsive (shown in gray).</li>
+                        <li><strong>Byzantine Fault:</strong> Node responds but gives wrong answers 30% of the time (shown in dark red).</li>
+                        <li><strong>Clear Faults:</strong> Restores all nodes to normal operation.</li>
+                        <li><strong>Testing:</strong> Try lookups after injecting faults to see how the system routes around failures.</li>
+                    </ul>
+                </div>
+
+                <div class="feature-section">
+                    <h3>📊 Understanding the Visualization</h3>
+                    <ul>
+                        <li><strong>Blue Circles:</strong> Active healthy nodes</li>
+                        <li><strong>Green Lines:</strong> Successor relationships (ring structure)</li>
+                        <li><strong>Purple Lines:</strong> Finger table entries (routing shortcuts)</li>
+                        <li><strong>Red Lines:</strong> Active lookup path being traced</li>
+                        <li><strong>Gray Nodes:</strong> Crashed nodes</li>
+                        <li><strong>Dark Red Nodes:</strong> Byzantine (malicious) nodes</li>
+                        <li><strong>Gold Border:</strong> Current round coordinator</li>
+                    </ul>
+                </div>
+
+                <div class="feature-section">
+                    <h3>🎯 Recommended Experiments</h3>
+                    <ol>
+                        <li><strong>Basic Setup:</strong> Add 4-5 nodes → Start new round → Try key lookups</li>
+                        <li><strong>Performance:</strong> Compare hop counts with different ring sizes and node counts</li>
+                        <li><strong>Fault Tolerance:</strong> Add nodes → Start round → Inject crash fault → Try lookups</li>
+                        <li><strong>Byzantine Behavior:</strong> Inject Byzantine fault → Perform multiple object lookups → Observe inconsistent results</li>
+                        <li><strong>Ring Dynamics:</strong> Add/remove nodes while performing lookups to see stabilization</li>
+                    </ol>
+                </div>
+
+                <div class="feature-section">
+                    <h3>📈 Statistics Panel</h3>
+                    <ul>
+                        <li><strong>Active Nodes:</strong> Current number of healthy nodes in the ring</li>
+                        <li><strong>Objects Stored:</strong> Number of objects distributed in current round</li>
+                        <li><strong>Current Round:</strong> Round number for object distribution</li>
+                        <li><strong>Last Lookup Hops:</strong> Number of routing steps in the most recent lookup</li>
+                        <li><strong>Average Hops:</strong> Average hops across all lookups performed</li>
+                        <li><strong>Message Statistics:</strong> Communication overhead tracking</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
-</div>
 
-
-<!-- Load the scripts -->
-<script src="https://cdn.jsdelivr.net/gh/virtual-labs/virtual-style@0.0.8-b/js/script.js"></script>
-<script src="./js/main.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
