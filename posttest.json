@@ -1,0 +1,158 @@
+{
+  "version": 2.0,
+  "questions": [
+    {
+      "question": "What happens if you try to add a node with the same ID as an existing node?",
+      "answers": {
+        "a": "The new node replaces the old one",
+        "b": "The system creates a backup node",
+        "c": "The operation fails; duplicate IDs are blocked",
+        "d": "The ring splits into two segments"
+      },
+      "explanations": {
+        "a": "Incorrect. Nodes cannot be overwritten.",
+        "b": "Incorrect. The system prevents duplicates entirely.",
+        "c": "Correct. The lab code checks for and rejects duplicate IDs.",
+        "d": "Incorrect. Duplicates are blocked before affecting the ring."
+      },
+      "correctAnswer": "c",
+      "difficulty": "beginner"
+    },
+    {
+      "question": "When a key is looked up, where does Chord start the search?",
+      "answers": {
+        "a": "At a random node",
+        "b": "At the node with ID 0",
+        "c": "At the node initiating the lookup",
+        "d": "At a central master node"
+      },
+      "explanations": {
+        "a": "Incorrect. The search is deterministic, not random.",
+        "b": "Incorrect. The search starts from the current node.",
+        "c": "Correct. Any node can initiate a lookup starting from itself.",
+        "d": "Incorrect. Chord is decentralized and has no master node."
+      },
+      "correctAnswer": "c",
+      "difficulty": "beginner"
+    },
+    {
+      "question": "What is a 'predecessor' in the Chord system?",
+      "answers": {
+        "a": "The node that will join the network next",
+        "b": "The node immediately counter-clockwise to a given node",
+        "c": "A list of all previous nodes in the network",
+        "d": "The node that holds the most keys"
+      },
+      "explanations": {
+        "a": "Incorrect. This is not a defined term in Chord.",
+        "b": "Correct. The predecessor is the node that comes just before the current node on the ring.",
+        "c": "Incorrect. A node only tracks its immediate predecessor.",
+        "d": "Incorrect. The number of keys does not determine the predecessor."
+      },
+      "correctAnswer": "b",
+      "difficulty": "beginner"
+    },
+    {
+      "question": "After removing a node from the ring, which node inherits its keys?",
+      "answers": {
+        "a": "Its predecessor",
+        "b": "Its successor",
+        "c": "A random node",
+        "d": "All nodes equally"
+      },
+      "explanations": {
+        "a": "Incorrect. Predecessors only handle their own key ranges.",
+        "b": "Correct. The successor assumes responsibility for the departed node's keys.",
+        "c": "Incorrect. Key redistribution follows the successor, not randomness.",
+        "d": "Incorrect. Keys are transferred to one node, not distributed."
+      },
+      "correctAnswer": "b",
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "If a new node is added between two existing nodes, what happens to the keys?",
+      "answers": {
+        "a": "The new node takes a portion of keys from its successor.",
+        "b": "The new node takes a portion of keys from its predecessor.",
+        "c": "The new node remains empty until new keys are added.",
+        "d": "All keys in the network are rebalanced."
+      },
+      "explanations": {
+        "a": "Correct. The new node becomes responsible for the keys that fall within its new range, which were previously held by its successor.",
+        "b": "Incorrect. The predecessor's key range is not affected in this way.",
+        "c": "Incorrect. The node must take over its share of keys to be part of the DHT.",
+        "d": "Incorrect. Only a small, local portion of keys is moved."
+      },
+      "correctAnswer": "a",
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What is the primary benefit of using a finger table for lookups?",
+      "answers": {
+        "a": "It guarantees a lookup will take only one hop.",
+        "b": "It allows a node to jump over large sections of the ring, speeding up the search.",
+        "c": "It stores a complete map of the entire network.",
+        "d": "It helps to balance the load of keys more evenly."
+      },
+      "explanations": {
+        "a": "Incorrect. One-hop lookups are rare.",
+        "b": "Correct. By having 'fingers' pointing to distant nodes, lookups can skip many nodes at each step, achieving O(log N) performance.",
+        "c": "Incorrect. No node has a complete map; that would not be scalable.",
+        "d": "Incorrect. Load balancing is a result of consistent hashing, not the finger table itself."
+      },
+      "correctAnswer": "b",
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "In a ring with Nodes 0, 16, 32, and 48 (m=6, IDs 0-63), which node is responsible for key 60?",
+      "answers": {
+        "a": "Node 48",
+        "b": "Node 0",
+        "c": "Node 16",
+        "d": "Node 32"
+      },
+      "explanations": {
+        "a": "Incorrect. The key 60 is greater than 48.",
+        "b": "Correct. Since key 60 is greater than the largest node ID (48), the responsibility wraps around to the first node in the ring, which is Node 0.",
+        "c": "Incorrect. Node 16 is not the successor of key 60.",
+        "d": "Incorrect. Node 32's range ends at 48."
+      },
+      "correctAnswer": "b",
+      "difficulty": "advanced"
+    },
+    {
+      "question": "In a two-node ring (Nodes 10 and 30, m=6), what is the successor for the ID calculated for finger[4] of Node 10?",
+      "answers": {
+        "a": "Node 10",
+        "b": "Node 30",
+        "c": "A node at ID 18",
+        "d": "A node at ID 26"
+      },
+      "explanations": {
+        "a": "Incorrect. Finger entries point to successors, not the node itself.",
+        "b": "Correct. The target ID is (10 + 2^(4-1)) mod 64 = (10 + 8) mod 64 = 18. In this ring, the first node clockwise from 18 is Node 30.",
+        "c": "Incorrect. A node at ID 18 does not exist in this specific two-node setup.",
+        "d": "Incorrect. A node at ID 26 is not part of the ring."
+      },
+      "correctAnswer": "b",
+      "difficulty": "advanced"
+    },
+    {
+      "question": "If a node's successor fails, how does the stabilization protocol help the node find its new successor?",
+      "answers": {
+        "a": "The node asks its predecessor for help.",
+        "b": "The node consults its finger table to find the next available live node.",
+        "c": "Each node maintains a successor list (a list of several nodes that follow it), and it will try the next node in that list.",
+        "d": "The node has to wait for the failed node to come back online."
+      },
+      "explanations": {
+        "a": "Incorrect. The predecessor is not involved in finding a new successor.",
+        "b": "Incorrect. While the finger table is used for lookups, the primary mechanism for this type of failure recovery is the successor list.",
+        "c": "Correct. To improve fault tolerance, nodes keep track of multiple successors. If the primary one fails, it can switch to the next one in its list.",
+        "d": "Incorrect. The system is designed to handle failures without waiting."
+      },
+      "correctAnswer": "c",
+      "difficulty": "advanced"
+    }
+  ]
+}

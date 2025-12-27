@@ -1,0 +1,158 @@
+{
+  "version": 2.0,
+  "questions": [
+    {
+      "question": "What is a distributed hash table (DHT)?",
+      "answers": {
+        "a": "A single table stored in a single computer's memory",
+        "b": "A table of key-value pairs stored across multiple computers",
+        "c": "A table stored in a relational database",
+        "d": "A hash table with a fixed size"
+      },
+      "explanations": {
+        "a": "Incorrect. A DHT is distributed across multiple computers.",
+        "b": "Correct. A DHT stores key-value pairs across multiple computers.",
+        "c": "Incorrect. A DHT is not limited to relational databases.",
+        "d": "Incorrect. A DHT can vary in size dynamically."
+      },
+      "correctAnswer": "b",
+      "difficulty": "beginner"
+    },
+    {
+      "question": "What is the primary purpose of the Chord ring?",
+      "answers": {
+        "a": "To encrypt data during transmission",
+        "b": "To organize nodes in a linear sequence",
+        "c": "To distribute keys across nodes in a circular identifier space",
+        "d": "To create a backup of all keys"
+      },
+      "explanations": {
+        "a": "Incorrect. The ring organizes nodes, not encryption.",
+        "b": "Incorrect. The ring is circular, not linear.",
+        "c": "Correct. Nodes and keys are placed on a circular ID space.",
+        "d": "Incorrect. Fault tolerance is handled by successors, not backups."
+      },
+      "correctAnswer": "c",
+      "difficulty": "beginner"
+    },
+    {
+      "question": "In Chord, what does a 'successor' refer to?",
+      "answers": {
+        "a": "The node that joined the network before the current node",
+        "b": "The first node that appears clockwise after a given ID on the Chord ring",
+        "c": "A backup node that stores a copy of all data",
+        "d": "The node with the highest identifier in the ring"
+      },
+      "explanations": {
+        "a": "Incorrect. The 'predecessor' is the node that comes before.",
+        "b": "Correct. The successor is the next node on the identifier circle.",
+        "c": "Incorrect. While successors are used for fault tolerance, they don't store all data.",
+        "d": "Incorrect. The successor is relative to a specific ID, not the highest overall."
+      },
+      "correctAnswer": "b",
+      "difficulty": "beginner"
+    },
+    {
+      "question": "What is stored in a node's finger table?",
+      "answers": {
+        "a": "All keys owned by the node",
+        "b": "IP addresses of all nodes in the network",
+        "c": "References to nodes at exponentially increasing intervals on the ring",
+        "d": "A copy of the entire Chord ring"
+      },
+      "explanations": {
+        "a": "Incorrect. Finger tables track successors, not keys.",
+        "b": "Incorrect. It only tracks specific intervals, not all nodes.",
+        "c": "Correct. Entries like (n + 2^(i-1)) mod 2^m enable efficient lookups.",
+        "d": "Incorrect. Nodes only know partial topology."
+      },
+      "correctAnswer": "c",
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How does the Chord system resolve a key lookup?",
+      "answers": {
+        "a": "By broadcasting the query to all nodes",
+        "b": "By iteratively querying successors or finger table entries",
+        "c": "By using a centralized lookup server",
+        "d": "By randomly guessing the node"
+      },
+      "explanations": {
+        "a": "Incorrect. Chord uses O(log N) hops, not broadcasting.",
+        "b": "Correct. It follows successors/fingers to reduce hops.",
+        "c": "Incorrect. Chord is decentralized.",
+        "d": "Incorrect. Lookups follow a structured path."
+      },
+      "correctAnswer": "b",
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What happens to keys when a node leaves the Chord ring?",
+      "answers": {
+        "a": "They are permanently lost",
+        "b": "They are redistributed to the node's successor",
+        "c": "They are copied to all remaining nodes",
+        "d": "They are deleted automatically"
+      },
+      "explanations": {
+        "a": "Incorrect. Successors take over the keys.",
+        "b": "Correct. The successor assumes responsibility.",
+        "c": "Incorrect. Only the successor receives the keys.",
+        "d": "Incorrect. Keys are preserved."
+      },
+      "correctAnswer": "b",
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "Why is consistent hashing important for minimizing disruption when nodes join or leave?",
+      "answers": {
+        "a": "It ensures that all nodes have an equal number of keys.",
+        "b": "It guarantees that only a small fraction of keys need to be moved.",
+        "c": "It prevents any keys from being moved at all.",
+        "d": "It hashes all keys to the same value for consistency."
+      },
+      "explanations": {
+        "a": "Incorrect. It provides a good balance but not perfect equality.",
+        "b": "Correct. When a node joins or leaves, only keys from the immediate neighbor are affected.",
+        "c": "Incorrect. Some keys must be moved to maintain the system.",
+        "d": "Incorrect. That would defeat the purpose of a hash table."
+      },
+      "correctAnswer": "b",
+      "difficulty": "advanced"
+    },
+    {
+      "question": "What is the purpose of the stabilization protocol in Chord?",
+      "answers": {
+        "a": "To stop new nodes from joining the network.",
+        "b": "To periodically verify a node's immediate successor and notify the successor of the node's existence.",
+        "c": "To delete old keys from the system.",
+        "d": "To re-hash all keys in the network."
+      },
+      "explanations": {
+        "a": "Incorrect. Stabilization helps integrate new nodes correctly.",
+        "b": "Correct. This ensures that the successor pointers are correct, which is critical for lookups and fault tolerance.",
+        "c": "Incorrect. Key management is separate from stabilization.",
+        "d": "Incorrect. Re-hashing all keys would be extremely inefficient."
+      },
+      "correctAnswer": "b",
+      "difficulty": "advanced"
+    },
+    {
+      "question": "In a Chord ring with m=7 bits, if a node has ID 42, what is the starting ID of the range for its 4th finger table entry (finger[4])?",
+      "answers": {
+        "a": "46",
+        "b": "50",
+        "c": "58",
+        "d": "128"
+      },
+      "explanations": {
+        "a": "Incorrect. This would be finger[3] (42 + 2^2).",
+        "b": "Correct. The formula is (n + 2^(k-1)) mod 2^m. So, (42 + 2^(4-1)) mod 128 = (42 + 8) mod 128 = 50.",
+        "c": "Incorrect. This would be finger[5] (42 + 2^4).",
+        "d": "Incorrect. The modulus is 2^7 = 128, but the calculation is incorrect."
+      },
+      "correctAnswer": "b",
+      "difficulty": "advanced"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+
+/home/runner/work/exp-chord-system-iiith/exp-chord-system-iiith/experiment/simulation/script.js
+   548:21  warning  'd3' is not defined                               no-undef
+   574:19  warning  'isLandscape' is assigned a value but never used  no-unused-vars
+   791:25  warning  'd3' is not defined                               no-undef
+   797:25  warning  'd3' is not defined                               no-undef
+   967:55  warning  'i' is defined but never used                     no-unused-vars
+  1089:18  warning  'removeNode' is defined but never used            no-unused-vars
+  1129:18  warning  'performLookup' is defined but never used         no-unused-vars
+  1166:13  warning  'animateLookupPath' is not defined                no-undef
+  1170:18  warning  'performObjectLookup' is defined but never used   no-unused-vars
+  1219:13  warning  'animateLookupPath' is not defined                no-undef
+  1222:18  warning  'startNewRound' is defined but never used         no-unused-vars
+  1387:58  warning  'e' is defined but never used                     no-unused-vars
+  1393:62  warning  'e' is defined but never used                     no-unused-vars
+  1397:58  warning  'e' is defined but never used                     no-unused-vars
+  1520:19  warning  'isPortrait' is assigned a value but never used   no-unused-vars
+
+✖ 15 problems (0 errors, 15 warnings)
+
