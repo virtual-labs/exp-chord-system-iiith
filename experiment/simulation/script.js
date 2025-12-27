@@ -565,14 +565,63 @@
 
         function initVisualization() {
             const container = document.querySelector('.simulation-area');
-            width = container.clientWidth - 40;
-            height = container.clientHeight - 40;
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            // Calculate responsive dimensions with better padding for small screens
+            const isMobile = window.innerWidth <= 768;
+            const isSmallMobile = window.innerWidth <= 480;
+            const isLandscape = window.innerWidth > window.innerHeight;
+            
+            let padding = 40;
+            if (isMobile) padding = 20;
+            if (isSmallMobile) padding = 15;
+            
+            width = containerWidth - padding;
+            height = containerHeight - padding;
+            
+            // Ensure minimum dimensions
+            width = Math.max(width, 250);
+            height = Math.max(height, 250);
+            
             centerX = width / 2;
             centerY = height / 2;
-            radius = Math.min(width, height) / 2 - 80;
+            
+            // Calculate responsive radius with better margins for mobile
+            let radiusMargin = 80;
+            if (isMobile) radiusMargin = 50;
+            if (isSmallMobile) radiusMargin = 40;
+            
+            radius = Math.min(width, height) / 2 - radiusMargin;
+            radius = Math.max(radius, 80); // Minimum radius
 
             svg.attr("width", width).attr("height", height);
+            svg.attr("viewBox", `0 0 ${width} ${height}`);
+            svg.attr("preserveAspectRatio", "xMidYMid meet");
+            
             updateVisualization();
+        }
+        
+        // Get responsive node size based on screen dimensions
+        function getResponsiveNodeSize() {
+            const isMobile = window.innerWidth <= 768;
+            const isSmallMobile = window.innerWidth <= 480;
+            const isLandscape = window.innerWidth > window.innerHeight && window.innerHeight <= 500;
+            
+            if (isSmallMobile) return { base: 16, hover: 19, font: 11 };
+            if (isMobile) return { base: 18, hover: 21, font: 12 };
+            if (isLandscape) return { base: 18, hover: 21, font: 12 };
+            return { base: 22, hover: 25, font: 14 };
+        }
+        
+        // Get responsive font size for labels
+        function getResponsiveFontSize() {
+            const isMobile = window.innerWidth <= 768;
+            const isSmallMobile = window.innerWidth <= 480;
+            
+            if (isSmallMobile) return 10;
+            if (isMobile) return 12;
+            return 14;
         }
 
         function updateVisualization() {
@@ -695,24 +744,31 @@
                 .style("filter", "drop-shadow(0 0 10px rgba(59, 130, 246, 0.2))");
 
             // Draw ring positions with enhanced styling
+            const labelFontSize = getResponsiveFontSize();
             for (let i = 0; i < chord.ringSize; i++) {
                 const angle = (i * 2 * Math.PI) / chord.ringSize - Math.PI / 2;
                 const x = centerX + radius * Math.cos(angle);
                 const y = centerY + radius * Math.sin(angle);
+                
+                // Responsive position marker size
+                const markerSize = window.innerWidth <= 480 ? 3 : 4;
 
                 svg.append("circle")
                     .attr("cx", x)
                     .attr("cy", y)
-                    .attr("r", 4)
+                    .attr("r", markerSize)
                     .attr("fill", "rgba(59, 130, 246, 0.4)")
                     .style("filter", "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))");
+                
+                // Responsive label offset
+                const labelOffset = radius > 150 ? 25 : (radius > 100 ? 20 : 18);
 
                 svg.append("text")
-                    .attr("x", x + (radius > 150 ? 25 : 20) * Math.cos(angle))
-                    .attr("y", y + (radius > 150 ? 25 : 20) * Math.sin(angle))
+                    .attr("x", x + labelOffset * Math.cos(angle))
+                    .attr("y", y + labelOffset * Math.sin(angle))
                     .attr("text-anchor", "middle")
                     .attr("dy", "0.35em")
-                    .attr("font-size", "14px")
+                    .attr("font-size", `${labelFontSize}px`)
                     .attr("font-weight", "600")
                     .attr("fill", "#374151")
                     .style("text-shadow", "0 1px 2px rgba(255, 255, 255, 0.8)")
@@ -720,6 +776,7 @@
             }
 
             // Draw nodes with enhanced styling
+            const nodeSize = getResponsiveNodeSize();
             chord.nodes.forEach((node, id) => {
                 const angle = (id * 2 * Math.PI) / chord.ringSize - Math.PI / 2;
                 const x = centerX + radius * Math.cos(angle);
@@ -734,13 +791,13 @@
                         d3.select(this).select("circle")
                             .transition()
                             .duration(200)
-                            .attr("r", 25);
+                            .attr("r", nodeSize.hover);
                     })
                     .on("mouseleave", function() {
                         d3.select(this).select("circle")
                             .transition()
                             .duration(200)
-                            .attr("r", 22);
+                            .attr("r", nodeSize.base);
                     });
 
                 // Determine node color based on status
@@ -765,10 +822,10 @@
                 // Node circle with status-based styling
                 const nodeCircle = nodeGroup.append("circle")
                     .attr("class", "node-circle")
-                    .attr("r", 22)
+                    .attr("r", nodeSize.base)
                     .attr("fill", `url(#${nodeGradientId})`)
                     .attr("stroke", strokeColor)
-                    .attr("stroke-width", 3)
+                    .attr("stroke-width", window.innerWidth <= 480 ? 2 : 3)
                     .style("filter", "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2))");
 
                 // Add pulsing animation for coordinator
@@ -779,7 +836,7 @@
                 // Add dashed outline for faulty nodes
                 if (node.isCrashed || node.isByzantine) {
                     nodeGroup.append("circle")
-                        .attr("r", 27)
+                        .attr("r", nodeSize.base + 5)
                         .attr("fill", "none")
                         .attr("stroke", strokeColor)
                         .attr("stroke-width", 2)
@@ -791,18 +848,22 @@
                 nodeGroup.append("text")
                     .attr("text-anchor", "middle")
                     .attr("dy", "0.35em")
-                    .attr("font-size", "16px")
+                    .attr("font-size", `${nodeSize.font}px`)
                     .attr("font-weight", "bold")
                     .attr("fill", textColor)
                     .style("text-shadow", node.isCrashed ? "none" : "0 1px 2px rgba(0, 0, 0, 0.5)")
                     .text(id);
 
+                // Responsive indicator positioning
+                const indicatorOffset = nodeSize.base + 10;
+                const indicatorFontSize = window.innerWidth <= 480 ? "12px" : "14px";
+
                 // Add status indicators
                 if (node.isCoordinator) {
                     nodeGroup.append("text")
                         .attr("text-anchor", "middle")
-                        .attr("dy", "-30px")
-                        .attr("font-size", "14px")
+                        .attr("dy", `-${indicatorOffset}px`)
+                        .attr("font-size", indicatorFontSize)
                         .attr("fill", "#f59e0b")
                         .text("⭐");
                 }
@@ -810,8 +871,8 @@
                 if (node.isCrashed) {
                     nodeGroup.append("text")
                         .attr("text-anchor", "middle")
-                        .attr("dy", "-30px")
-                        .attr("font-size", "14px")
+                        .attr("dy", `-${indicatorOffset}px`)
+                        .attr("font-size", indicatorFontSize)
                         .attr("fill", "#ef4444")
                         .text("💥");
                 }
@@ -819,22 +880,27 @@
                 if (node.isByzantine) {
                     nodeGroup.append("text")
                         .attr("text-anchor", "middle")
-                        .attr("dy", "-30px")
-                        .attr("font-size", "14px")
+                        .attr("dy", `-${indicatorOffset}px`)
+                        .attr("font-size", indicatorFontSize)
                         .attr("fill", "#dc2626")
                         .text("🔥");
                 }
 
                 // Show object box if node has objects
                 if (node.objectBucket.size > 0) {
-                    // Create object box group
+                    // Create object box group - responsive positioning
+                    const boxOffset = nodeSize.base + 8;
                     const boxGroup = nodeGroup.append("g")
-                        .attr("transform", "translate(30, -15)");
+                        .attr("transform", `translate(${boxOffset}, -15)`);
+                    
+                    // Responsive box sizing
+                    const boxWidth = window.innerWidth <= 480 ? 50 : 60;
+                    const lineHeight = window.innerWidth <= 480 ? 12 : 15;
 
                     // Box background
                     boxGroup.append("rect")
-                        .attr("width", 60)
-                        .attr("height", node.objectBucket.size * 15 + 10)
+                        .attr("width", boxWidth)
+                        .attr("height", node.objectBucket.size * lineHeight + 10)
                         .attr("rx", 4)
                         .attr("ry", 4)
                         .attr("fill", "#dcfce7")
@@ -842,13 +908,14 @@
                         .attr("stroke-width", 1)
                         .style("opacity", 0.9);
 
-                    // List objects
+                    // List objects with responsive sizing
+                    const objectFontSize = window.innerWidth <= 480 ? "9px" : "10px";
                     const objects = Array.from(node.objectBucket.values());
                     objects.forEach((objId, index) => {
                         boxGroup.append("text")
                             .attr("x", 5)
-                            .attr("y", 15 + index * 15)
-                            .attr("font-size", "10px")
+                            .attr("y", 15 + index * lineHeight)
+                            .attr("font-size", objectFontSize)
                             .attr("fill", "#059669")
                             .text(`📦 ${objId.split('_')[2]}`); // Show just the object number
                     });
@@ -1168,7 +1235,35 @@
             log(`New round started with ${objectCount} objects`, 'success');
         }
 
-
+        // Mobile scroll helper function
+        function scrollToSection(section) {
+            const fab = document.getElementById('fabScroll');
+            let targetElement;
+            
+            if (section === 'experiment') {
+                targetElement = document.querySelector('.experiment-area');
+                fab.textContent = '📋';
+                fab.setAttribute('onclick', "scrollToSection('controls')");
+                fab.setAttribute('title', 'View Controls');
+            } else if (section === 'controls') {
+                targetElement = document.querySelector('.controls-panel');
+                fab.textContent = '📊';
+                fab.setAttribute('onclick', "scrollToSection('stats')");
+                fab.setAttribute('title', 'View Statistics');
+            } else if (section === 'stats') {
+                targetElement = document.querySelector('.observations-panel');
+                fab.textContent = '🔗';
+                fab.setAttribute('onclick', "scrollToSection('experiment')");
+                fab.setAttribute('title', 'View Ring');
+            }
+            
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        
+        // Make scroll function globally available
+        window.scrollToSection = scrollToSection;
 
         function showFingerTables() {
             chord.showFingers = true;
@@ -1224,10 +1319,42 @@
             chord.setRingSize(newM);
             updateVisualization();
         });
+        
+        // Collapsible sections for mobile
+        function setupCollapsibleSections() {
+            // Control sections
+            const controlSections = document.querySelectorAll('.control-section');
+            controlSections.forEach(section => {
+                const header = section.querySelector('h3');
+                if (header) {
+                    header.addEventListener('click', (e) => {
+                        if (window.innerWidth <= 768) {
+                            e.preventDefault();
+                            section.classList.toggle('collapsed');
+                        }
+                    });
+                }
+            });
+            
+            // Status sections
+            const statusSections = document.querySelectorAll('.status-section');
+            statusSections.forEach(section => {
+                const header = section.querySelector('h4');
+                if (header) {
+                    header.addEventListener('click', (e) => {
+                        if (window.innerWidth <= 768) {
+                            e.preventDefault();
+                            section.classList.toggle('collapsed');
+                        }
+                    });
+                }
+            });
+        }
 
         // Initialize the visualization when the page loads
         window.addEventListener('load', () => {
             initVisualization();
+            setupCollapsibleSections();
             log('Chord DHT simulation ready', 'success');
             
             // Debug the objectCount dropdown
@@ -1276,9 +1403,20 @@
             });
         });
 
-        // Handle window resize
+        // Handle window resize with debouncing
+        let resizeTimeout;
         window.addEventListener('resize', () => {
-            setTimeout(initVisualization, 100);
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                initVisualization();
+            }, 150);
+        });
+        
+        // Handle orientation change
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                initVisualization();
+            }, 200);
         });
 
         // Debug function for dropdown - call this from console if needed
@@ -1374,22 +1512,21 @@
             }
         });
 
-        // Mobile orientation handling
+        // Mobile orientation handling - now fully responsive, overlay disabled
         function checkOrientation() {
-            const overlay = document.querySelector('.rotate-device-overlay');
+            // Overlay is now hidden via CSS as the layout is fully responsive
+            // This function is kept for potential future use or analytics
             const isMobile = window.innerWidth < 768;
             const isPortrait = window.innerHeight > window.innerWidth;
             
-            if (isMobile && isPortrait) {
-                overlay.style.display = 'flex';
-            } else {
-                overlay.style.display = 'none';
+            // Just reinitialize visualization on orientation change
+            if (isMobile) {
+                initVisualization();
             }
         }
 
         // Check orientation on load and resize
         window.addEventListener('load', checkOrientation);
-        window.addEventListener('resize', checkOrientation);
         window.addEventListener('orientationchange', () => {
             setTimeout(checkOrientation, 100);
         });
